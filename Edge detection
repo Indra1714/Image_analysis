@@ -1,0 +1,16 @@
+%Create a script that:
+%Using Matlab
+%Converts the image to grayscale.
+%Applies the imgaussfilt function with a standard deviation of 0.75.
+%Detects the edges using the edge function with the Sobel method and "nothinning" option. 
+
+img = imread('roadlanes.jpg');
+
+% Convert the image to grayscale
+grayImg = rgb2gray(img);
+
+% Apply Gaussian filter with a standard deviation of 0.75
+smoothImg = imgaussfilt(grayImg, 0.75);
+
+% Detect edges using the Sobel method with the 'nothinning' option
+imgEdges = edge(smoothImg, 'Sobel', 'nothinning');
