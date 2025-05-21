@@ -1,0 +1,39 @@
+img=imread('Puzzle.jpg');
+
+imgHSV = rgb2hsv(img);  % Convert to HSV
+
+% Step 2: Create a binary mask for foreground (puzzle pieces)
+S = imgHSV(:,:,2);
+V = imgHSV(:,:,3);
+BW = (S > 0.3) & (V > 0.2);  % You can tweak these thresholds
+BW = imfill(BW, 'holes');    % Fill small holes
+BW = bwareaopen(BW, 50);     % Remove small noise
+
+% Step 3: Apply K-means clustering to foreground pixels only
+pixels = reshape(imgHSV, [], 3);  % Flatten image to pixel list
+foregroundPixels = pixels(BW(:), :);  % Select only foreground pixels
+
+% Step 4: K-means clustering into 2 color groups
+nColors = 2;
+[clusterIdx, clusterCenters] = kmeans(foregroundPixels, nColors, 'Replicates', 3);
+
+% Step 5: Create the labeled image (background=1, red=2, blue=3)
+labels = zeros(size(BW));  % Background is 0 initially
+
+% Assign 1 to background
+labels(~BW) = 1;
+
+% Map cluster indices to label values
+[~, sortOrder] = sort(clusterCenters(:,1));  % Sort by hue
+labelMap = zeros(nColors, 1);
+labelMap(sortOrder(1)) = 2;  % Lower hue = red/orange
+labelMap(sortOrder(2)) = 3;  % Higher hue = blue
+
+% Assign labels to foreground
+labels(BW) = labelMap(clusterIdx);
+
+% Step 6: Visualize the results
+figure;
+subplot(1,3,1), imshow(img), title('Original Image');
+subplot(1,3,2), imshow(BW), title('Binary Mask (BW)');
+subplot(1,3,3), imshow(label2rgb(labels)), title('Labeled Output');
