@@ -1,0 +1,56 @@
+testImageIdx = randi([1,3])
+testCoinImage = imread("testCoinImage"+testImageIdx+".png");
+grayImg = testCoinImage;
+
+level = graythresh(grayImg);
+testCoinMask = imbinarize(grayImg, level);
+testCoinMask = imfill(testCoinMask, 'holes');
+testCoinMask = bwareaopen(testCoinMask, 50);  
+figure; imshow(testCoinMask); title('testCoinMask');
+
+maskedCoinImage = grayImg;
+maskedCoinImage(~testCoinMask) = 0;
+figure; imshow(maskedCoinImage); title('maskedCoinImage');
+
+edges = edge(maskedCoinImage, 'sobel',0.08);
+figure; imshow(edges); title('Raw edges');
+
+
+se = strel('disk', 14); 
+erodedMask = imerode(testCoinMask, se);
+figure; imshow(erodedMask); title('Eroded mask');
+
+
+faceEdgeMask = edges & erodedMask;
+figure; imshow(faceEdgeMask); title('faceEdgeMask');
+
+seDilate = strel('disk', 28);
+expandedFaceMask = imdilate(faceEdgeMask, seDilate);
+figure; imshow(expandedFaceMask); title('expandedFaceMask');
+
+validCoinMask = expandedFaceMask & testCoinMask;
+figure; imshow(validCoinMask); title('validCoinMask');
+
+
+coinSizes = regionprops("table", validCoinMask, "Area", "Perimeter", "Centroid", "EquivDiameter");
+disp(coinSizes)
+areas = coinSizes.Area;
+
+
+dimeIdx     = areas < 5000;
+nickelIdx   = areas >= 5500 & areas < 7000;
+quarterIdx  = areas >= 7000 & areas < 8000;
+fiftyIdx    = areas >= 12000;
+
+nDimes      = sum(dimeIdx);
+nNickels    = sum(nickelIdx);
+nQuarters   = sum(quarterIdx);
+nFiftyCents = sum(fiftyIdx);
+
+USD = nDimes*0.10 + nNickels*0.05 + nQuarters*0.25 + nFiftyCents*0.50;
+
+fprintf('Dimes: %d\nNickels: %d\nQuarters: %d\nFifty Cents: %d\n', ...
+    nDimes, nNickels, nQuarters, nFiftyCents);
+fprintf('Total USD: $%.2f\n', USD);
+
+montage({maskedCoinImage,validCoinMask})
